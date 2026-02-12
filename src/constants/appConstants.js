@@ -47,6 +47,12 @@ export const VALIDATION_RULES = {
 export const ROUTES = {
   HOME: '/',
   BOOKING: '/booking',
+  VEHICLES: '/vehicles',
+  BROWSE_BY_TYPE: '/browse-by-type',
+  BUDGET_VEHICLES: '/budget-vehicles',
+  POPULAR_VEHICLES: '/popular-vehicles',
+  MY_BOOKINGS: '/my-bookings',
+  FAVORITES: '/favorites',
   SUMMARY: '/summary',
   PAYMENT: '/payment',
   BOOKING_CONFIRMATION: '/booking-confirmation',
@@ -56,10 +62,12 @@ export const ROUTES = {
   ADMIN_VEHICLES: '/admin/vehicles',
   ADMIN_BOOKINGS: '/admin/bookings',
   ADMIN_USERS: '/admin/users',
+  PROFILE: '/profile',
 };
 
 export const DEMO_CREDENTIALS = {
   ADMIN: {
+    USERNAME: 'admin',
     EMAIL: 'admin@greenride.com',
     PASSWORD: 'admin123',
   },

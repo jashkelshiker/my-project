@@ -110,36 +110,47 @@ export default function Home() {
               </div>
 
               {/* RIGHT CARD */}
-              <motion.div
-                variants={fadeUp}
-                custom={5}
-                className="relative"
-              >
+              <motion.div variants={fadeUp} custom={5} className="relative">
                 <div className="absolute -inset-6 rounded-[2rem] bg-emerald-500/10 blur-2xl" />
+
                 <motion.div
                   whileHover={{ y: -6, scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 200 }}
                   className="card-glass relative p-6"
                 >
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-start">
                     <div>
                       <div className="text-xs font-semibold text-slate-500">
                         Featured
                       </div>
                       <div className="font-display text-xl font-bold text-slate-900">
-                        Comfort Sedan
+                        Comfort SUV
                       </div>
                       <div className="text-sm text-slate-600">
                         From{" "}
                         {formatPrice(
-                          VEHICLE_PRICES[VEHICLE_TYPES.SEDAN]
+                          VEHICLE_PRICES[VEHICLE_TYPES.SUV]
                         )}{" "}
                         / day
                       </div>
                     </div>
-                    <div className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
-                      Best value
-                    </div>
+
+                    {/* ✅ IMPROVED BEST VALUE */}
+                    <motion.div
+                      initial={{ scale: 0.85, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{
+                        delay: 0.4,
+                        type: "spring",
+                        stiffness: 180,
+                      }}
+                      className="flex items-center gap-1 rounded-full
+                                 bg-gradient-to-r from-emerald-500 to-green-400
+                                 px-3 py-1 text-xs font-semibold text-white
+                                 shadow-md shadow-emerald-500/40"
+                    >
+                      ⭐ Best value
+                    </motion.div>
                   </div>
 
                   <img

@@ -39,10 +39,14 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
+      // Trim whitespace from inputs
+      const email = loginForm.email.trim();
+      const password = loginForm.password.trim();
+
       // Demo login - in real app, this would be an API call
       if (
-        loginForm.email === DEMO_CREDENTIALS.ADMIN.EMAIL &&
-        loginForm.password === DEMO_CREDENTIALS.ADMIN.PASSWORD
+        email === DEMO_CREDENTIALS.ADMIN.EMAIL &&
+        password === DEMO_CREDENTIALS.ADMIN.PASSWORD
       ) {
         login({
           id: 1,
@@ -55,26 +59,27 @@ export default function AuthPage() {
           location.state?.from?.pathname || ROUTES.ADMIN_DASHBOARD,
           { replace: true }
         );
-      } else if (loginForm.password === DEMO_CREDENTIALS.USER.PASSWORD) {
+      } else if (password === DEMO_CREDENTIALS.USER.PASSWORD) {
         // Demo user login
         const users = await getUsers();
-        const user =
-          users.find((u) => u.email === loginForm.email) ||
+
+        const foundUser =
+          users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ||
           {
             id: Date.now(),
             name: 'User',
-            email: loginForm.email,
+            email: email,
             phone: '0000000000',
             role: 'user',
           };
-        login(user);
+        login(foundUser);
         navigate(
           location.state?.from?.pathname || ROUTES.DASHBOARD,
           { replace: true }
         );
       } else {
         setError(
-          `Invalid email or password. Try: ${DEMO_CREDENTIALS.ADMIN.EMAIL}/${DEMO_CREDENTIALS.ADMIN.PASSWORD} or any email/${DEMO_CREDENTIALS.USER.PASSWORD}`
+          `Invalid email or password. Try: ${DEMO_CREDENTIALS.ADMIN.EMAIL} / ${DEMO_CREDENTIALS.ADMIN.PASSWORD} or any email / ${DEMO_CREDENTIALS.USER.PASSWORD}`
         );
       }
     } catch (err) {

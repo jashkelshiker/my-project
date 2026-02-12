@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { USER_ROLES } from '../constants/appConstants';
+import { USER_ROLES, DEMO_CREDENTIALS } from '../constants/appConstants';
 
 const AuthContext = createContext();
 
@@ -51,6 +51,36 @@ export const AuthProvider = ({ children }) => {
     try {
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
+      // For admin demo: try to obtain a real JWT from backend token endpoint
+      (async () => {
+        try {
+          if (userData?.role === USER_ROLES.ADMIN) {
+            const API = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+            const tokenUrl = `${API.replace(/\/$/, '')}/token/`;
+            const resp = await fetch(tokenUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: DEMO_CREDENTIALS.ADMIN.USERNAME, password: DEMO_CREDENTIALS.ADMIN.PASSWORD }),
+            });
+            const data = await resp.json();
+            if (resp.ok && data.access) {
+              localStorage.setItem('access_token', data.access);
+              // If backend returned user payload, merge it
+              if (data.user) {
+                const merged = { ...userData, ...data.user };
+                setUser(merged);
+                localStorage.setItem('user', JSON.stringify(merged));
+              }
+            } else {
+              console.warn('Failed to obtain JWT for demo admin:', data);
+            }
+          } else {
+            localStorage.removeItem('access_token');
+          }
+        } catch (e) {
+          console.error('Error fetching demo JWT:', e);
+        }
+      })();
     } catch (error) {
       console.error('Error saving user to localStorage:', error);
       throw new Error('Failed to save user session');
@@ -64,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     try {
       localStorage.removeItem('user');
+      localStorage.removeItem('access_token');
     } catch (error) {
       console.error('Error removing user from localStorage:', error);
     }

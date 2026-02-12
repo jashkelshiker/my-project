@@ -46,6 +46,7 @@ export default function Layout() {
 
   const navItems = [
     { to: ROUTES.HOME, label: 'Home' },
+    { to: ROUTES.VEHICLES, label: 'Browse' },
     { to: ROUTES.BOOKING, label: 'Book' },
   ];
 
@@ -98,7 +99,10 @@ export default function Layout() {
                 ) : (
                   <>
                     <NavItem to={ROUTES.DASHBOARD} label="Dashboard" />
+                    <NavItem to={ROUTES.PROFILE} label="Profile" />
+                    <NavItem to={ROUTES.MY_BOOKINGS} label="My Bookings" />
                     <NavItem to={ROUTES.BOOKING} label="Book" />
+                    <NavItem to={ROUTES.FAVORITES} label="Favorites ❤️" />
                   </>
                 )}
                 <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
@@ -179,8 +183,23 @@ export default function Layout() {
                         onClick={() => setOpen(false)}
                       />
                       <NavItem
+                        to={ROUTES.PROFILE}
+                        label="Profile"
+                        onClick={() => setOpen(false)}
+                      />
+                      <NavItem
+                        to={ROUTES.MY_BOOKINGS}
+                        label="My Bookings"
+                        onClick={() => setOpen(false)}
+                      />
+                      <NavItem
                         to={ROUTES.BOOKING}
                         label="Book"
+                        onClick={() => setOpen(false)}
+                      />
+                      <NavItem
+                        to={ROUTES.FAVORITES}
+                        label="Favorites ❤️"
                         onClick={() => setOpen(false)}
                       />
                     </>

@@ -25,8 +25,8 @@ export default function Booking() {
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phone: user?.phone || '',
+    name: '',
+    phone: '',
     age: '',
     licenseNumber: '',
     persons: '',
@@ -41,14 +41,23 @@ export default function Booking() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /* ---------- AUTO FILL USER ---------- */
+  /* ---------- AUTO FILL USER & RESET FORM ON USER CHANGE ---------- */
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name || prev.name,
-        phone: user.phone || prev.phone,
-      }));
+      setFormData({
+        name: user.name || '',
+        phone: user.phone || '',
+        age: '',
+        licenseNumber: '',
+        persons: '',
+        vehicle: '',
+        price: 0,
+        deliverDate: '',
+        returnDate: '',
+        deliverLocation: '',
+        returnLocation: '',
+      });
+      setErrors({});
     }
   }, [user]);
 
@@ -132,6 +141,15 @@ export default function Booking() {
             <Alert variant="error" className="mb-4">
               {errors.dates}
             </Alert>
+          )}
+
+          {Object.keys(errors).map(
+            (key) =>
+              key !== 'dates' && (
+                <Alert key={key} variant="error" className="mb-2">
+                  {errors[key]}
+                </Alert>
+              )
           )}
 
           <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-2">

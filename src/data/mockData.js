@@ -109,7 +109,6 @@ export const mockUsers = [
 // Helper functions to manage data (simulating API calls)
 let vehicles = [...mockVehicles];
 let bookings = [...mockBookings];
-let users = [...mockUsers];
 
 export const getVehicles = () => Promise.resolve([...vehicles]);
 export const addVehicle = (vehicle) => {
@@ -137,9 +136,28 @@ export const updateBookingStatus = (id, status) => {
   return Promise.resolve(bookings.find((b) => b.id === id));
 };
 
-export const getUsers = () => Promise.resolve([...users]);
-export const addUser = (userData) => {
-  const newUser = { ...userData, id: Date.now(), role: 'user', createdAt: new Date().toISOString().split('T')[0] };
-  users.push(newUser);
-  return Promise.resolve(newUser);
+// Function to get all users from localStorage
+export const getUsers = async () => {
+  const users = localStorage.getItem('users');
+  return users ? JSON.parse(users) : [];
+};
+
+// Function to add a new user (with password)
+export const addUser = async (userData) => {
+  const users = await getUsers();
+  
+  // Check if email already exists
+  if (users.find((u) => u.email.toLowerCase() === userData.email.toLowerCase())) {
+    throw new Error('User with this email already exists.');
+  }
+
+  const newUser = {
+    ...userData,
+    id: Date.now(), // Generate unique ID
+  };
+
+  const updatedUsers = [...users, newUser];
+  localStorage.setItem('users', JSON.stringify(updatedUsers));
+  
+  return newUser;
 };
