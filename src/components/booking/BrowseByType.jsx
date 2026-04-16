@@ -45,17 +45,17 @@ export default function BrowseByType() {
   };
 
   const handleBook = (vehicle) => {
-    navigate(ROUTES.BOOKING);
+    navigate(ROUTES.BOOKING, { state: { selectedVehicle: vehicle } });
   };
 
   const displayedVehicles = selectedType ? vehiclesByType[selectedType] : [];
 
   return (
-    <div className="py-12 bg-slate-50 min-h-screen">
+    <div className="py-12 bg-slate-900 min-h-screen">
       <div className="container-page">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-slate-100">
             Browse by Vehicle Type
           </h1>
           <p className="mt-2 text-slate-600">

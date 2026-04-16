@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
-import Cars from "../../image/car.png";
+import Cars from "../../image/suv.png";
 import {
   ROUTES,
   APP_CONFIG,
@@ -60,57 +60,34 @@ export default function Home() {
           className="relative"
         >
           <div className="container-page py-16 md:py-20">
+            {/* MAIN TEXT - BIG - UPPER PART */}
             <motion.div
-              variants={containerStagger}
-              initial="hidden"
-              animate="visible"
-              className="grid items-center gap-10 md:grid-cols-2"
+              variants={fadeUp}
+              custom={1}
+              className="text-center mb-12"
             >
-              {/* LEFT */}
-              <div>
-                <motion.div
-                  variants={fadeUp}
-                  custom={1}
-                  className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/90"
-                >
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  Verified vehicles • Transparent pricing
-                </motion.div>
+              <motion.div
+                variants={fadeUp}
+                custom={1}
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/90 mb-6"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Verified vehicles • Transparent pricing
+              </motion.div>
 
-                <motion.h1
-                  variants={fadeUp}
-                  custom={2}
-                  className="mt-6 font-display text-4xl font-bold tracking-tight text-white md:text-5xl"
-                >
-                  Premium vehicle rentals,
-                  <span className="text-emerald-300"> ready when you are</span>.
-                </motion.h1>
+              <motion.h1
+                variants={fadeUp}
+                custom={2}
+                className="font-display text-4xl font-bold tracking-tight text-white md:text-5xl"
+              >
+                Premium vehicle rentals,
+                <span className="text-emerald-300"> ready when you are</span>.
+              </motion.h1>
+            </motion.div>
 
-                <motion.p
-                  variants={fadeUp}
-                  custom={3}
-                  className="mt-4 max-w-xl text-base text-white/80"
-                >
-                  Book in minutes with clear pricing, flexible dates, and reliable
-                  support—built for a smooth ride.
-                </motion.p>
-
-                <motion.div
-                  variants={fadeUp}
-                  custom={4}
-                  className="mt-8 flex gap-3"
-                >
-                  <Link to={ROUTES.BOOKING} className="btn-primary">
-                    Book now →
-                  </Link>
-                  <Link to={ROUTES.AUTH} className="btn-secondary">
-                    Sign in
-                  </Link>
-                </motion.div>
-              </div>
-
-              {/* RIGHT CARD */}
-              <motion.div variants={fadeUp} custom={5} className="relative">
+            {/* FORTUNER CAR IMAGE - MIDDLE */}
+            <motion.div variants={fadeUp} custom={3} className="flex justify-center mb-12">
+              <div className="relative max-w-md">
                 <div className="absolute -inset-6 rounded-[2rem] bg-emerald-500/10 blur-2xl" />
 
                 <motion.div
@@ -159,6 +136,36 @@ export default function Home() {
                     className="mt-6 w-full rounded-2xl bg-white p-4 shadow-lift"
                   />
                 </motion.div>
+              </div>
+            </motion.div>
+
+            {/* REMAINING INFORMATION - BELOW SIDE OF IMAGE */}
+            <motion.div
+              variants={containerStagger}
+              initial="hidden"
+              animate="visible"
+              className="text-center"
+            >
+              <motion.p
+                variants={fadeUp}
+                custom={4}
+                className="max-w-2xl mx-auto text-base text-white/80 mb-8"
+              >
+                Book in minutes with clear pricing, flexible dates, and reliable
+                support—built for a smooth ride.
+              </motion.p>
+
+              <motion.div
+                variants={fadeUp}
+                custom={5}
+                className="flex gap-3 justify-center"
+              >
+                <Link to={ROUTES.BOOKING} className="btn-primary">
+                  Book now →
+                </Link>
+                <Link to={ROUTES.AUTH} className="btn-secondary">
+                  Sign in
+                </Link>
               </motion.div>
             </motion.div>
           </div>

@@ -7,14 +7,12 @@ export const VEHICLE_TYPES = {
   SEDAN: 'Sedan',
   SUV: 'SUV',
   MINI_BUS: 'Mini Bus',
-  MAXI_CAB: 'Maxi Cab',
 };
 
 export const VEHICLE_PRICES = {
   [VEHICLE_TYPES.SEDAN]: 2000,
   [VEHICLE_TYPES.SUV]: 3000,
   [VEHICLE_TYPES.MINI_BUS]: 6000,
-  [VEHICLE_TYPES.MAXI_CAB]: 4500,
 };
 
 export const BOOKING_STATUS = {
@@ -41,7 +39,7 @@ export const VALIDATION_RULES = {
   MIN_PERSONS: 4,
   PHONE_LENGTH: 10,
   MIN_LICENSE_LENGTH: 15,
-  TAX_RATE: 0.1, // 10%
+  TAX_RATE: 0.17, // 17%
 };
 
 export const ROUTES = {
@@ -72,7 +70,9 @@ export const DEMO_CREDENTIALS = {
     PASSWORD: 'admin123',
   },
   USER: {
-    PASSWORD: 'password123',
+    USERNAME: 'testuser',
+    EMAIL: 'testuser@greenride.com',
+    PASSWORD: 'Test@123',
   },
 };
 

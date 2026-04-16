@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getBookings, updateBookingStatus } from '../../data/mockData';
+import bookingAPI from '../../services/bookingAPI';
 
 export default function AdminBookings() {
   const [bookings, setBookings] = useState([]);
@@ -9,13 +9,37 @@ export default function AdminBookings() {
   }, []);
 
   const loadBookings = async () => {
-    const data = await getBookings();
-    setBookings(data);
+    try {
+      const response = await bookingAPI.getAdminBookings();
+      const list = response.results || response;
+      const mapped = list.map((b) => ({
+        id: b.id,
+        userName: b.user_details?.username || b.user || 'User',
+        vehicleName: b.vehicle_details?.name || b.vehicle || 'Vehicle',
+        pickupDate: b.start_date,
+        returnDate: b.end_date,
+        pickupLocation: b.details?.deliverLocation || b.pickup_location || 'N/A',
+        dropLocation: b.details?.returnLocation || b.drop_location || 'N/A',
+        totalPrice: b.total_price || 0,
+        status: (b.status || 'PENDING').toLowerCase(),
+      }));
+      setBookings(mapped);
+    } catch (err) {
+      console.error('Failed to load admin bookings:', err);
+      setBookings([]);
+    }
   };
 
   const handleStatusUpdate = async (id, newStatus) => {
-    await updateBookingStatus(id, newStatus);
-    await loadBookings();
+    try {
+      // Backend expects uppercase status values
+      await bookingAPI.updateBooking(id, { status: String(newStatus).toUpperCase() });
+      await loadBookings();
+    } catch (err) {
+      console.error('Failed to update booking status:', err);
+      const msg = err?.detail || err?.message || 'Failed to update status';
+      alert(`Status update failed: ${msg}`);
+    }
   };
 
   const statusColors = {
@@ -72,7 +96,7 @@ export default function AdminBookings() {
                       <select
                         value={booking.status}
                         onChange={(e) => handleStatusUpdate(booking.id, e.target.value)}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs text-black focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                       >
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>

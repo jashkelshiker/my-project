@@ -35,17 +35,6 @@ export const mockVehicles = [
     image: '/mini-bus.png',
     description: 'Perfect for group travel',
   },
-  {
-    id: 4,
-    name: 'Maxi Cab',
-    type: 'Maxi Cab',
-    model: 'Force Traveller',
-    price: 4500,
-    seats: 18,
-    available: false,
-    image: '/mini-bus.png',
-    description: 'Large capacity for tours and events',
-  },
 ];
 
 export const mockBookings = [

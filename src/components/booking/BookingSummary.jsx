@@ -13,6 +13,15 @@ export default function BookingSummary() {
   const { state } = useLocation();
   const navigate = useNavigate();
 
+  // Timer for user reference (not blocking)
+  const [timer, setTimer] = React.useState(0);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!state) {
     return (
       <div className="py-12">
@@ -31,6 +40,8 @@ export default function BookingSummary() {
       </div>
     );
   }
+
+
 
   const {
     name,
@@ -63,6 +74,9 @@ export default function BookingSummary() {
             <p className="mt-2 text-sm text-slate-600">
               Review your booking details before proceeding to payment
             </p>
+            <div className="mt-2 text-xs text-slate-500">
+              Time spent on this page: <span className="font-mono">{timer} second{timer !== 1 ? 's' : ''}</span>
+            </div>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -142,7 +156,7 @@ export default function BookingSummary() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Tax (10%)</span>
+                <span className="text-slate-600">Tax (17%)</span>
                 <span className="font-medium text-slate-900">
                   {formatPrice(tax || 0)}
                 </span>

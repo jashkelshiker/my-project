@@ -1,6 +1,6 @@
 /**
  * Vehicle API Service
- * Handles all vehicle-related API calls
+ * Handles all vehicle-related API calls with proper authentication
  */
 
 import axios from 'axios';
@@ -8,23 +8,87 @@ import axios from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 const VEHICLES_ENDPOINT = `${API_BASE_URL}/vehicles`;
 
-// Create axios instance with auth
-const getAuthHeader = () => {
-  const token = localStorage.getItem('access_token');
-  console.log('Auth Check:', { hasToken: !!token, tokenLength: token?.length });
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// Create authenticated axios instance
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// Enhanced error handler
+// Add token to all requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log(`📤 [${config.method?.toUpperCase()}] ${config.url}`);
+    } else {
+      console.warn('⚠️ No access token found in localStorage for API request');
+    }
+    
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Handle 401 responses - refresh token
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+            refresh: refreshToken,
+          });
+          
+          const { access } = response.data;
+          localStorage.setItem('access_token', access);
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+          
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Enhanced error handler with console logging
 const handleError = (error, endpoint) => {
   const errorData = error.response?.data;
   const status = error.response?.status;
+  const message = error.message;
   
-  console.error(`API Error [${endpoint}]:`, {
+  const errorInfo = {
+    endpoint,
     status,
     data: errorData,
-    message: error.message,
-  });
+    message,
+    url: error.config?.url,
+    headers: {
+      hasAuth: !!error.config?.headers?.Authorization,
+    },
+  };
+  
+  console.error(`❌ API Error [${endpoint}]:`, errorInfo);
   
   // Return detailed error info
   if (errorData) {
@@ -36,15 +100,24 @@ const handleError = (error, endpoint) => {
   }
   
   if (status === 403) {
-    return { detail: 'Forbidden - Admin access required' };
+    return { detail: 'Forbidden - Admin access required. Make sure you are logged in as an admin user.' };
+  }
+
+  if (status === 404) {
+    return { detail: `Endpoint not found: ${error.config?.url}` };
   }
   
-  return { detail: error.message || 'An error occurred' };
+  if (!error.response) {
+    return { detail: `Network error: ${message}. Is the backend running at ${API_BASE_URL}?` };
+  }
+  
+  return { detail: message || 'An error occurred' };
 };
 
 export const vehicleAPI = {
   /**
-   * Get all vehicles (public - shows active only)
+   * Get all vehicles (admin-only now, permission reduced on backend).
+   * Regular users will receive 403 if they try to call this.
    */
   getAllVehicles: async (filters = {}) => {
     try {
@@ -53,10 +126,10 @@ export const vehicleAPI = {
       if (filters.search) params.append('search', filters.search);
       if (filters.ordering) params.append('ordering', filters.ordering);
 
-      const response = await axios.get(`${VEHICLES_ENDPOINT}/`, { params });
+      const response = await api.get(`${VEHICLES_ENDPOINT}/`, { params });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'getAllVehicles');
     }
   },
 
@@ -65,10 +138,10 @@ export const vehicleAPI = {
    */
   getVehicleById: async (id) => {
     try {
-      const response = await axios.get(`${VEHICLES_ENDPOINT}/${id}/`);
+      const response = await api.get(`${VEHICLES_ENDPOINT}/${id}/`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'getVehicleById');
     }
   },
 
@@ -78,7 +151,11 @@ export const vehicleAPI = {
   getAdminVehicles: async (filters = {}) => {
     try {
       const token = localStorage.getItem('access_token');
-      console.log('Loading admin vehicles. Token exists:', !!token);
+      console.log('🔐 Token check:', { hasToken: !!token, tokenLength: token?.length });
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in first.');
+      }
       
       const params = new URLSearchParams();
       if (filters.vehicle_type) params.append('vehicle_type', filters.vehicle_type);
@@ -87,13 +164,12 @@ export const vehicleAPI = {
       if (filters.ordering) params.append('ordering', filters.ordering);
       if (filters.page) params.append('page', filters.page);
 
-      const response = await axios.get(`${VEHICLES_ENDPOINT}/admin/`, {
-        params,
-        headers: getAuthHeader(),
-      });
-      console.log('Admin vehicles loaded successfully');
+      console.log('📥 Fetching admin vehicles from:', `${VEHICLES_ENDPOINT}/admin/`);
+      const response = await api.get(`${VEHICLES_ENDPOINT}/admin/`, { params });
+      console.log('✅ Admin vehicles loaded successfully:', response.data);
       return response.data;
     } catch (error) {
+      console.error('🚨 getAdminVehicles error:', error);
       throw handleError(error, 'getAdminVehicles');
     }
   },
@@ -101,32 +177,35 @@ export const vehicleAPI = {
   /**
    * ADMIN: Create new vehicle
    */
-  createVehicle: async (vehicleData) => {
+  createVehicle: async (vehicleData, headers = {}) => {
     try {
-      const response = await axios.post(
-        `${VEHICLES_ENDPOINT}/admin/`,
-        vehicleData,
-        { headers: getAuthHeader() }
-      );
+      // if FormData is provided, ensure the content-type is set properly
+      if (vehicleData instanceof FormData) {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+      const response = await api.post(`${VEHICLES_ENDPOINT}/admin/`, vehicleData, {
+        headers,
+      });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'createVehicle');
     }
   },
 
   /**
    * ADMIN: Update vehicle
    */
-  updateVehicle: async (id, vehicleData) => {
+  updateVehicle: async (id, vehicleData, headers = {}) => {
     try {
-      const response = await axios.patch(
-        `${VEHICLES_ENDPOINT}/admin/${id}/`,
-        vehicleData,
-        { headers: getAuthHeader() }
-      );
+      if (vehicleData instanceof FormData) {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
+      const response = await api.patch(`${VEHICLES_ENDPOINT}/admin/${id}/`, vehicleData, {
+        headers,
+      });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'updateVehicle');
     }
   },
 
@@ -135,12 +214,10 @@ export const vehicleAPI = {
    */
   deleteVehicle: async (id) => {
     try {
-      await axios.delete(`${VEHICLES_ENDPOINT}/admin/${id}/`, {
-        headers: getAuthHeader(),
-      });
+      await api.delete(`${VEHICLES_ENDPOINT}/admin/${id}/`);
       return { success: true };
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'deleteVehicle');
     }
   },
 
@@ -149,18 +226,13 @@ export const vehicleAPI = {
    */
   bulkUpdateStatus: async (ids, isActive) => {
     try {
-      const payload = {
+      const response = await api.post(`${VEHICLES_ENDPOINT}/admin/bulk_update_status/`, {
         ids,
         is_active: isActive,
-      };
-      const response = await axios.post(
-        `${VEHICLES_ENDPOINT}/admin/bulk_update_status/`,
-        payload,
-        { headers: getAuthHeader() }
-      );
+      });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'bulkUpdateStatus');
     }
   },
 
@@ -169,14 +241,12 @@ export const vehicleAPI = {
    */
   bulkDelete: async (ids) => {
     try {
-      const response = await axios.post(
-        `${VEHICLES_ENDPOINT}/admin/bulk_delete/`,
-        { ids },
-        { headers: getAuthHeader() }
-      );
+      const response = await api.post(`${VEHICLES_ENDPOINT}/admin/bulk_delete/`, {
+        ids,
+      });
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'bulkDelete');
     }
   },
 
@@ -185,12 +255,10 @@ export const vehicleAPI = {
    */
   getVehicleStats: async () => {
     try {
-      const response = await axios.get(`${VEHICLES_ENDPOINT}/admin/statistics/`, {
-        headers: getAuthHeader(),
-      });
+      const response = await api.get(`${VEHICLES_ENDPOINT}/admin/statistics/`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      throw handleError(error, 'getVehicleStats');
     }
   },
 };

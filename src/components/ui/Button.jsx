@@ -17,7 +17,7 @@ const Button = ({
   
   const variantClasses = {
     primary: 'bg-brand-600 text-white shadow-soft hover:bg-brand-700 focus:ring-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed',
-    secondary: 'bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 focus:ring-slate-200/50',
+    secondary: 'bg-slate-700 text-slate-100 border border-slate-600 hover:bg-slate-600 focus:ring-slate-600/50',
     ghost: 'bg-transparent text-slate-900 hover:bg-slate-100/70',
     danger: 'bg-red-600 text-white shadow-soft hover:bg-red-700 focus:ring-red-500/20',
   };

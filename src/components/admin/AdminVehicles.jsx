@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import vehicleAPI from '../../services/vehicleAPI';
+import { formatPrice } from '../../utils/priceUtils';
 
 export default function AdminVehicles() {
   const [vehicles, setVehicles] = useState([]);
@@ -239,7 +240,7 @@ export default function AdminVehicles() {
             </div>
             <div className="card p-6">
               <h3 className="text-sm font-medium text-slate-600">Avg Price</h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">${stats.average_price?.toFixed(2)}</p>
+              <p className="mt-2 text-3xl font-bold text-blue-600">{formatPrice(stats.average_price)}</p>
             </div>
           </div>
         )}
@@ -475,7 +476,7 @@ export default function AdminVehicles() {
                           {vehicle.vehicle_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">${vehicle.price_per_day}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{formatPrice(vehicle.price_per_day)}</td>
                       <td className="px-6 py-4 text-sm">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { addUser, getUsers } from '../../data/mockData';
+import authAPI from '../../services/authAPI';
 import { DEMO_CREDENTIALS, ROUTES, APP_CONFIG } from '../../constants/appConstants';
+import notificationAPI from '../../services/notificationAPI';
 import { validateEmail } from '../../utils/validation';
-import bus from '../../image/mini-bus.png';
+import bus from '../../image/vehicle.png';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
@@ -43,47 +44,77 @@ export default function AuthPage() {
       const email = loginForm.email.trim();
       const password = loginForm.password.trim();
 
-      // Demo login - in real app, this would be an API call
-      if (
-        email === DEMO_CREDENTIALS.ADMIN.EMAIL &&
-        password === DEMO_CREDENTIALS.ADMIN.PASSWORD
-      ) {
-        login({
-          id: 1,
-          name: 'Admin User',
-          email: DEMO_CREDENTIALS.ADMIN.EMAIL,
-          phone: '9876543210',
-          role: 'admin',
-        });
-        navigate(
-          location.state?.from?.pathname || ROUTES.ADMIN_DASHBOARD,
-          { replace: true }
-        );
-      } else if (password === DEMO_CREDENTIALS.USER.PASSWORD) {
-        // Demo user login
-        const users = await getUsers();
-
-        const foundUser =
-          users.find((u) => u.email.toLowerCase() === email.toLowerCase()) ||
-          {
-            id: Date.now(),
-            name: 'User',
-            email: email,
-            phone: '0000000000',
-            role: 'user',
-          };
-        login(foundUser);
-        navigate(
-          location.state?.from?.pathname || ROUTES.DASHBOARD,
-          { replace: true }
-        );
-      } else {
-        setError(
-          `Invalid email or password. Try: ${DEMO_CREDENTIALS.ADMIN.EMAIL} / ${DEMO_CREDENTIALS.ADMIN.PASSWORD} or any email / ${DEMO_CREDENTIALS.USER.PASSWORD}`
-        );
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        setIsLoading(false);
+        return;
       }
+
+      // Use username or email for login (backend accepts both)
+      const userData = await authAPI.login(email, password);
+      
+      // Map backend user data to frontend format
+      const mappedUser = {
+        id: userData.id,
+        name: userData.first_name && userData.last_name 
+          ? `${userData.first_name} ${userData.last_name}` 
+          : userData.username || userData.email,
+        email: userData.email,
+        phone: userData.phone_number || userData.phone || '',
+        role: userData.role?.toLowerCase() || 'user',
+        username: userData.username,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      };
+
+      login(mappedUser);
+      // Notify admin side about the user login (non-blocking)
+      // only send admin SMS if we actually have a number
+      if (mappedUser.phone) {
+        try {
+          notificationAPI.adminSendNotification({
+            user_id: mappedUser.id,
+            notification_type: 'USER_LOGIN',
+            message: `User ${mappedUser.name} (${mappedUser.email}) logged in`,
+            phone_number: mappedUser.phone,
+          }).catch((e) => {
+            // swallow notification errors, log for debugging
+            // eslint-disable-next-line no-console
+            console.warn('admin notification failed', e);
+          });
+        } catch (notifyErr) {
+          // eslint-disable-next-line no-console
+          console.warn('admin notification error', notifyErr);
+        }
+      }
+
+      // Navigate based on role
+      const redirectPath = mappedUser.role === 'admin' 
+        ? ROUTES.ADMIN_DASHBOARD 
+        : ROUTES.DASHBOARD;
+
+      navigate(
+        location.state?.from?.pathname || redirectPath,
+        { replace: true }
+      );
     } catch (err) {
-      setError('Login failed. Please try again.');
+      // Extract error message with multiple fallbacks
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (err.detail) {
+        errorMessage = err.detail;
+      } else if (err.error) {
+        errorMessage = err.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      // Log full error for debugging
+      console.error('Login error:', err);
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -106,32 +137,107 @@ export default function AuthPage() {
       return;
     }
 
+    if (registerForm.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const newUser = await addUser({
-        name: registerForm.name,
+      // Split name into first_name and last_name
+      const nameParts = registerForm.name.trim().split(' ');
+      const first_name = nameParts[0] || '';
+      const last_name = nameParts.slice(1).join(' ') || '';
+
+      // Register user via API
+      const userData = await authAPI.register({
+        username: `${registerForm.email.split('@')[0]}_${Date.now()}`, // Make username unique with timestamp
         email: registerForm.email,
-        phone: registerForm.phone,
-        role: 'user',
+        password: registerForm.password,
+        first_name,
+        last_name,
+        phone_number: registerForm.phone || '',
       });
 
-      login({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        role: newUser.role,
-      });
+      // Map backend user data to frontend format
+      const mappedUser = {
+        id: userData.id,
+        name: registerForm.name,
+        email: userData.email,
+        phone: registerForm.phone || '',
+        role: 'user',
+        username: userData.username,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      };
+
+      login(mappedUser);
+      // Notify admin side about the new user registration (non-blocking)
+      // send admin alert only if phone is provided
+      if (mappedUser.phone) {
+        try {
+          notificationAPI.adminSendNotification({
+            user_id: mappedUser.id,
+            notification_type: 'USER_REGISTER',
+            message: `New user registered: ${mappedUser.name} (${mappedUser.email})`,
+            phone_number: mappedUser.phone,
+            // include full mapped user object as metadata for admin processing
+            metadata: mappedUser,
+          }).catch((e) => {
+            // eslint-disable-next-line no-console
+            console.warn('admin notification (register) failed', e);
+          });
+        } catch (notifyErr) {
+          // eslint-disable-next-line no-console
+          console.warn('admin notification (register) error', notifyErr);
+        }
+      }
 
       navigate(ROUTES.DASHBOARD, { replace: true });
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      // Handle validation errors from backend and surface useful messages
+      let errorMessage = 'Registration failed. Please try again.';
+
+      try {
+        const firstFromArray = (v) => (Array.isArray(v) ? v[0] : v);
+
+        const candidates = [
+          'email',
+          'username',
+          'non_field_errors',
+          'detail',
+          'error',
+          'message',
+        ];
+
+        for (const key of candidates) {
+          if (err && Object.prototype.hasOwnProperty.call(err, key)) {
+            errorMessage = firstFromArray(err[key]);
+            break;
+          }
+        }
+
+        // If err is a plain string or other object, fall back to it
+        if (errorMessage === 'Registration failed. Please try again.') {
+          if (typeof err === 'string') errorMessage = err;
+          else if (err && typeof err === 'object') errorMessage = JSON.stringify(err);
+        }
+      } catch (parseErr) {
+        // ignore parsing errors and keep generic message
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen" style={{
+      backgroundImage: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 35%, var(--bg-accent) 60%, var(--bg-primary) 100%)',
+      backgroundAttachment: 'fixed',
+      backgroundSize: 'cover'
+    }}>
       <div className="container-page flex min-h-screen items-center justify-center py-12">
         <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-lift">
           <div className="grid md:grid-cols-2">
@@ -183,7 +289,8 @@ export default function AuthPage() {
                       {DEMO_CREDENTIALS.ADMIN.PASSWORD}
                     </div>
                     <div>
-                      <span className="font-semibold">User:</span> any email /{' '}
+                      <span className="font-semibold">User:</span>{' '}
+                      {DEMO_CREDENTIALS.USER.EMAIL} /{' '}
                       {DEMO_CREDENTIALS.USER.PASSWORD}
                     </div>
                   </div>
@@ -345,7 +452,7 @@ export default function AuthPage() {
                         password: e.target.value,
                       })
                     }
-                    placeholder={DEMO_CREDENTIALS.USER.PASSWORD}
+                    placeholder="Choose a password"
                     required
                   />
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { validateBookingForm } from '../../utils/validation';
 import { calculateBookingPrice, formatPrice } from '../../utils/priceUtils';
@@ -13,15 +13,16 @@ import Alert from '../ui/Alert';
 const getVehicleAndPrice = (persons) => {
   const p = Number(persons);
 
-  if (p >= 20) return { vehicle: 'Mini Bus', price: 5200 };
+  if (p >= 30) return { vehicle: 'Mini Bus', price: 5200 };
   if (p >= 12) return { vehicle: 'Tempo Traveller', price: 3600 };
-  if (p >= 7) return { vehicle: 'Sedan', price: 2600 };
+  if (p >= 7) return { vehicle: 'Sedan3', price: 2600 };
   if (p >= 4) return { vehicle: 'Mini Car', price: 2000 };
-  return { vehicle: '', price: 0 };
+  return { vehicle: 'Bus', price: 8000 };
 };
 
 export default function Booking() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -41,17 +42,19 @@ export default function Booking() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /* ---------- AUTO FILL USER & RESET FORM ON USER CHANGE ---------- */
+  /* ---------- AUTO FILL USER & SELECTED VEHICLE & RESET FORM ON USER CHANGE ---------- */
   useEffect(() => {
     if (user) {
+      const selectedVehicle = location.state?.selectedVehicle;
+      
       setFormData({
         name: user.name || '',
-        phone: user.phone || '',
+        phone: user.phone || user.phone_number || '',
         age: '',
         licenseNumber: '',
-        persons: '',
-        vehicle: '',
-        price: 0,
+        persons: selectedVehicle ? selectedVehicle.passengers.toString() : '',
+        vehicle: selectedVehicle ? selectedVehicle.name : '',
+        price: selectedVehicle ? selectedVehicle.price : 0,
         deliverDate: '',
         returnDate: '',
         deliverLocation: '',
@@ -59,24 +62,27 @@ export default function Booking() {
       });
       setErrors({});
     }
-  }, [user]);
+  }, [user, location.state]);
 
   /* ---------- HANDLE CHANGE ---------- */
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updated = { ...formData, [name]: value };
 
-    // Auto set vehicle & price by persons
+    // Auto set vehicle & price by persons (only if no vehicle is pre-selected)
     if (name === 'persons') {
-      if (value) {
+      const selectedVehicle = location.state?.selectedVehicle;
+      if (value && !selectedVehicle) {
         const result = getVehicleAndPrice(value) || { vehicle: '', price: 0 };
         const { vehicle, price } = result;
         updated.vehicle = vehicle;
         updated.price = price;
-      } else {
-        // Clear auto-selected vehicle/price when persons is emptied
-        updated.vehicle = '';
-        updated.price = 0;
+      } else if (!value) {
+        // Clear auto-selected vehicle/price when persons is emptied (but keep pre-selected vehicle)
+        if (!selectedVehicle) {
+          updated.vehicle = '';
+          updated.price = 0;
+        }
       }
     }
 
@@ -92,6 +98,9 @@ export default function Booking() {
   };
 
   /* ---------- SUBMIT ---------- */
+  const [buffering, setBuffering] = useState(false);
+  const [bufferTimer, setBufferTimer] = useState(3); // 3 seconds buffer
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -103,19 +112,30 @@ export default function Booking() {
       return;
     }
 
-    const priceBreakdown = calculateBookingPrice(
-      formData.price,
-      formData.deliverDate,
-      formData.returnDate
-    );
-
-    navigate('/summary', {
-      state: {
-        ...formData,
-        ...priceBreakdown,
-      },
-    });
+    setBuffering(true);
+    setBufferTimer(3);
   };
+
+  useEffect(() => {
+    if (buffering && bufferTimer > 0) {
+      const interval = setInterval(() => {
+        setBufferTimer((t) => t - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else if (buffering && bufferTimer === 0) {
+      const priceBreakdown = calculateBookingPrice(
+        formData.price,
+        formData.deliverDate,
+        formData.returnDate
+      );
+      navigate('/summary', {
+        state: {
+          ...formData,
+          ...priceBreakdown,
+        },
+      });
+    }
+  }, [buffering, bufferTimer]);
 
   const priceBreakdown =
     formData.vehicle &&
@@ -129,6 +149,24 @@ export default function Booking() {
       : null;
 
   /* ---------- UI ---------- */
+  if (buffering) {
+    return (
+      <div className="py-12">
+        <div className="container-page">
+          <Card className="mx-auto max-w-md p-8 text-center">
+            <div className="text-4xl mb-4">⏳</div>
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-2">
+              Processing your booking...
+            </h2>
+            <p className="text-sm text-slate-600 mb-6">
+              Please wait {bufferTimer} second{bufferTimer !== 1 ? 's' : ''}.
+            </p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-12">
       <div className="container-page">
@@ -199,7 +237,7 @@ export default function Booking() {
             )}
 
             <div className="md:col-span-2 flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={() => navigate('/')}>
+              <Button type="button" variant="secondary" onClick={() => navigate('/')}>\
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

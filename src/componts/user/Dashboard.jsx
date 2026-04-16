@@ -30,7 +30,7 @@ export default function UserDashboard() {
       <div className="container-page">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">My Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-600">Welcome back, {user?.name}</p>
+          <p className="mt-2 text-sm text-gray-600">Welcome back, {user?.name}</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -45,7 +45,7 @@ export default function UserDashboard() {
             </div>
           </div>
           <div className="card p-6">
-            <div className="text-sm font-medium text-slate-600">Pending</div>
+            <div className="text-sm font-medium text-gray-600">Pending</div>
             <div className="mt-2 text-3xl font-bold text-yellow-600">
               {bookings.filter((b) => b.status === 'pending').length}
             </div>
@@ -64,7 +64,7 @@ export default function UserDashboard() {
             <div className="card p-12 text-center">
               <div className="text-4xl mb-4">📋</div>
               <h3 className="font-semibold text-slate-900">No bookings yet</h3>
-              <p className="mt-2 text-sm text-slate-600">Start by booking your first vehicle</p>
+              <p className="mt-2 text-sm text-gray-600">Start by booking your first vehicle</p>
               <Link to="/booking" className="btn-primary mt-4">
                 Book Now
               </Link>
@@ -87,8 +87,8 @@ export default function UserDashboard() {
                     {bookings.map((booking) => (
                       <tr key={booking.id} className="hover:bg-slate-50">
                         <td className="px-6 py-4 text-sm font-medium text-slate-900">#{booking.id}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{booking.vehicleName}</td>
-                        <td className="px-6 py-4 text-sm text-slate-600">
+                        <td className="px-6 py-4 text-sm text-black">{booking.vehicleName}</td>
+                        <td className="px-6 py-4 text-sm text-black">
                           <div>{booking.pickupDate}</div>
                           <div className="text-xs text-slate-500">to {booking.returnDate}</div>
                         </td>

@@ -98,7 +98,7 @@ export default function AuthPage() {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-full max-w-5xl overflow-hidden rounded-3xl bg-slate-800 shadow-2xl"
       >
         <div className="grid md:grid-cols-2">
           {/* LEFT PANEL */}
@@ -130,8 +130,8 @@ export default function AuthPage() {
                 }}
                 className={`rounded-lg py-2 font-semibold transition ${
                   mode === "login"
-                    ? "bg-white shadow"
-                    : "text-slate-600"
+                    ? "bg-slate-700 shadow"
+                    : "text-slate-400"
                 }`}
               >
                 Sign In
@@ -143,8 +143,8 @@ export default function AuthPage() {
                 }}
                 className={`rounded-lg py-2 font-semibold transition ${
                   mode === "register"
-                    ? "bg-white shadow"
-                    : "text-slate-600"
+                    ? "bg-slate-700 shadow"
+                    : "text-slate-400"
                 }`}
               >
                 Sign Up
@@ -178,7 +178,7 @@ export default function AuthPage() {
                     <input
                       type="email"
                       placeholder="Email"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={loginForm.email}
                       onChange={(e) =>
                         setLoginForm({
@@ -191,7 +191,7 @@ export default function AuthPage() {
                     <input
                       type="password"
                       placeholder="Password"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={loginForm.password}
                       onChange={(e) =>
                         setLoginForm({
@@ -219,7 +219,7 @@ export default function AuthPage() {
                     <input
                       type="text"
                       placeholder="Full Name"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={registerForm.name}
                       onChange={(e) =>
                         setRegisterForm({
@@ -232,7 +232,7 @@ export default function AuthPage() {
                     <input
                       type="email"
                       placeholder="Email"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={registerForm.email}
                       onChange={(e) =>
                         setRegisterForm({
@@ -245,7 +245,7 @@ export default function AuthPage() {
                     <input
                       type="tel"
                       placeholder="Phone (optional)"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={registerForm.phone}
                       onChange={(e) =>
                         setRegisterForm({
@@ -257,7 +257,7 @@ export default function AuthPage() {
                     <input
                       type="password"
                       placeholder="Password"
-                      className="w-full rounded-xl border p-3"
+                      className="w-full rounded-xl border border-gray-300 p-3 bg-white text-black placeholder-gray-500"
                       value={registerForm.password}
                       onChange={(e) =>
                         setRegisterForm({

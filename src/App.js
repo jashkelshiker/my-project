@@ -1,15 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layout
-import Layout from './components/layout/Layout';
+import Layout from './componts/layout';
 
 // Public Components
-import Home from './components/home/Home';
+import Home from './componts/home';
 import AuthPage from './components/auth/AuthPage';
-import Booking from './components/booking/Booking';
-import BookingSummary from './components/booking/BookingSummary';
-import Payment from './components/payment/Payment';
-import BookingConfirmation from './components/booking/BookingConfirmation';
+import Booking from './componts/booking';
+import BookingSummary from './componts/vehiclerentalsummery';
+import Payment from './componts/payment';
+import BookingConfirmation from './componts/bookingConfirmation';
 import MyBookings from './components/booking/MyBookings';
 import Favorites from './components/booking/Favorites';
 import VehicleList from './components/booking/VehicleList';
@@ -20,7 +22,7 @@ import PopularVehicles from './components/booking/PopularVehicles';
 // Protected Components
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Admin Components
+// Admin Componets
 import AdminDashboard from './componts/admin/Dashboard';
 import AdminVehicles from './componts/admin/Vehicles';
 import AdminBookings from './componts/admin/Bookings';
@@ -62,8 +64,10 @@ if (typeof window !== 'undefined') {
  */
 function App() {
   return (
-    <div className="min-h-screen">
-      <Routes>
+    <AuthProvider>
+      <NotificationProvider>
+        <div className="min-h-screen">
+          <Routes>
         {/* Public Routes */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
@@ -112,7 +116,9 @@ function App() {
         <Route path="/test1" element={<Navigate to="/auth" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+        </div>
+      </NotificationProvider>
+    </AuthProvider>
   );
 }
 

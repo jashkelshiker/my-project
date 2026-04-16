@@ -2,13 +2,26 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { addBooking } from "../data/mockData";
+import Preloader from "../components/common/Preloader";
 
 export default function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [method, setMethod] = useState("upi");
+  const [isProcessing, setIsProcessing] = useState(false);
   const bookingData = location.state;
+
+  // keep a copy in sessionStorage so confirmation page can recall even if state is lost
+  React.useEffect(() => {
+    if (bookingData) {
+      try {
+        sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
+      } catch (e) {
+        console.warn('failed to cache bookingData', e);
+      }
+    }
+  }, [bookingData]);
 
   if (!bookingData) {
     return (
@@ -17,7 +30,7 @@ export default function Payment() {
           <div className="card mx-auto max-w-md p-8 text-center">
             <div className="text-4xl mb-4">💳</div>
             <h2 className="font-display text-xl font-bold text-slate-900 mb-2">No booking data found</h2>
-            <p className="text-sm text-slate-600 mb-6">Please complete booking first</p>
+            <p className="text-sm text-gray-700 mb-6">Please complete booking first</p>
             <button onClick={() => navigate("/booking")} className="btn-primary">
               Start Booking
             </button>
@@ -28,6 +41,7 @@ export default function Payment() {
   }
 
   const handlePayment = async () => {
+    setIsProcessing(true);
     try {
       // Save booking
       await addBooking({
@@ -43,14 +57,21 @@ export default function Payment() {
         status: 'confirmed',
       });
 
-      navigate("/booking-confirmation", {
-        state: {
-          ...bookingData,
-          total: bookingData.totalPrice,
-          paymentMethod: method,
-        },
-      });
+      const confirmState = {
+        ...bookingData,
+        total: bookingData.totalPrice,
+        paymentMethod: method,
+      };
+      // cache for confirmation fallback
+      try {
+        sessionStorage.setItem('bookingData', JSON.stringify(confirmState));
+      } catch (e) {
+        console.warn('could not cache confirmState', e);
+      }
+
+      navigate("/booking-confirmation", { state: confirmState });
     } catch (error) {
+      setIsProcessing(false);
       alert("Payment failed. Please try again.");
     }
   };
@@ -58,7 +79,9 @@ export default function Payment() {
   const subtotal = bookingData.totalPrice - (bookingData.tax || 0);
 
   return (
-    <div className="py-12">
+    <>
+      <Preloader isVisible={isProcessing} message="Processing your payment..." />
+      <div className="py-12">
       <div className="container-page">
         <div className="card mx-auto max-w-md p-8 md:p-10">
           <div className="mb-8">
@@ -74,7 +97,7 @@ export default function Payment() {
                 <span className="font-medium text-slate-900">₹{subtotal}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Tax (10%)</span>
+                <span className="text-gray-600">Tax (17%)</span>
                 <span className="font-medium text-slate-900">₹{bookingData.tax || 0}</span>
               </div>
               <div className="border-t border-slate-200 pt-3 flex justify-between">
@@ -98,7 +121,7 @@ export default function Payment() {
                 />
                 <div>
                   <div className="font-medium text-slate-900">UPI</div>
-                  <div className="text-xs text-slate-600">Pay via UPI apps</div>
+                  <div className="text-xs text-gray-600">Pay via UPI apps</div>
                 </div>
               </label>
 
@@ -112,7 +135,7 @@ export default function Payment() {
                 />
                 <div>
                   <div className="font-medium text-slate-900">Debit / Credit Card</div>
-                  <div className="text-xs text-slate-600">Visa, Mastercard, RuPay</div>
+                  <div className="text-xs text-gray-600">Visa, Mastercard, RuPay</div>
                 </div>
               </label>
 
@@ -126,14 +149,14 @@ export default function Payment() {
                 />
                 <div>
                   <div className="font-medium text-slate-900">Cash</div>
-                  <div className="text-xs text-slate-600">Pay on pickup</div>
+                  <div className="text-xs text-gray-600">Pay on pickup</div>
                 </div>
               </label>
             </div>
           </div>
 
           {/* Pay Button */}
-          <button onClick={handlePayment} className="btn-primary w-full">
+          <button onClick={handlePayment} className="btn-primary w-full" disabled={isProcessing}>
             Pay ₹{bookingData.totalPrice} Now
           </button>
 
@@ -143,5 +166,6 @@ export default function Payment() {
         </div>
       </div>
     </div>
+    </>
   );
 }

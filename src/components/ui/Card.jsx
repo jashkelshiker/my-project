@@ -4,13 +4,13 @@ import React from 'react';
  * Reusable Card Component
  */
 const Card = ({ children, className = '', variant = 'default', ...props }) => {
-  const baseClasses = 'rounded-2xl border bg-white shadow-soft';
-  
+  const baseClasses = 'rounded-2xl border bg-white shadow-xl';
+
   const variantClasses = {
-    default: 'border-slate-200/80',
-    glass: 'border-white/25 bg-white/70 backdrop-blur',
+    default: 'border-gray-200',
+    glass: 'border-gray-200 bg-white/70 backdrop-blur',
     brand: 'border-brand-200 bg-brand-50',
-    slate: 'border-slate-200 bg-slate-50',
+    slate: 'border-gray-200 bg-gray-50',
   };
 
   return (

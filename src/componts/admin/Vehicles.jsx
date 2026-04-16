@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import vehicleAPI from '../../services/vehicleAPI';
+import { formatPrice } from '../../utils/priceUtils';
 
 export default function AdminVehicles() {
+  const { user } = useAuth();
   const [vehicles, setVehicles] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     vehicle_type: '',
@@ -14,18 +17,24 @@ export default function AdminVehicles() {
   const [formData, setFormData] = useState({
     name: '',
     vehicle_type: '',
+    passengers: '',
     description: '',
     price_per_day: '',
+    fuel: 'Petrol',
+    // newly created vehicles are active by default (users can see them)
     is_active: true,
+    photo: null,
   });
   const [selectedVehicles, setSelectedVehicles] = useState([]);
   const [stats, setStats] = useState(null);
 
   const loadVehicles = useCallback(async () => {
+    console.log('📥 loadVehicles called with filters:', filters);
     setLoading(true);
     setError(null);
     try {
       const data = await vehicleAPI.getAdminVehicles(filters);
+      console.log('✅ Vehicles loaded:', data);
       setVehicles(Array.isArray(data.results) ? data.results : data);
     } catch (err) {
       const errorMessage = typeof err === 'object' && err?.detail 
@@ -33,8 +42,8 @@ export default function AdminVehicles() {
         : typeof err === 'object' && err?.error
         ? err.error
         : 'Failed to load vehicles';
+      console.error('❌ Error loading vehicles:', errorMessage, err);
       setError(errorMessage);
-      console.error('Error loading vehicles:', err);
     } finally {
       setLoading(false);
     }
@@ -50,9 +59,10 @@ export default function AdminVehicles() {
   }, []);
 
   useEffect(() => {
+    console.log('🔐 Admin Vehicles component mounted:', { user: user?.username, role: user?.role });
     loadVehicles();
     loadStats();
-  }, [loadVehicles, loadStats]);
+  }, [loadVehicles, loadStats, user?.role, user?.username]);
 
 
 
@@ -61,20 +71,42 @@ export default function AdminVehicles() {
     setLoading(true);
     setError(null);
     try {
-      const payload = {
-        name: formData.name.trim(),
-        vehicle_type: formData.vehicle_type,
-        description: formData.description.trim(),
-        price_per_day: parseFloat(formData.price_per_day),
-        is_active: formData.is_active,
-      };
+      let payload;
+      const headers = {};
+
+      if (formData.photo) {
+        // Use FormData for file uploads
+        payload = new FormData();
+        payload.append('name', formData.name.trim());
+        payload.append('vehicle_type', formData.vehicle_type);
+        payload.append('description', formData.description.trim());
+        payload.append('price_per_day', parseFloat(formData.price_per_day));
+        payload.append('fuel', formData.fuel);
+        if (formData.passengers) {
+          payload.append('passengers', parseInt(formData.passengers, 10));
+        }
+        payload.append('is_active', formData.is_active);
+        payload.append('photo', formData.photo);
+
+        // tell axios this is a multipart payload; the boundary will be set automatically
+        headers['Content-Type'] = 'multipart/form-data';
+      } else {
+        // Use regular JSON
+        payload = {
+          name: formData.name.trim(),
+          vehicle_type: formData.vehicle_type,
+          description: formData.description.trim(),
+          price_per_day: parseFloat(formData.price_per_day),
+          fuel: formData.fuel,
+          passengers: formData.passengers ? parseInt(formData.passengers, 10) : undefined,
+          is_active: formData.is_active,
+        };
+      }
 
       if (editing) {
-        await vehicleAPI.updateVehicle(editing.id, payload);
-        alert('Vehicle updated successfully!');
+        await vehicleAPI.updateVehicle(editing.id, payload, formData.photo ? headers : {});
       } else {
-        await vehicleAPI.createVehicle(payload);
-        alert('Vehicle added successfully!');
+        await vehicleAPI.createVehicle(payload, formData.photo ? headers : {});
       }
       await loadVehicles();
       resetForm();
@@ -96,9 +128,12 @@ export default function AdminVehicles() {
     setFormData({
       name: vehicle.name,
       vehicle_type: vehicle.vehicle_type,
+      passengers: vehicle.passengers ?? '',
       description: vehicle.description,
       price_per_day: vehicle.price_per_day,
+      fuel: vehicle.fuel || 'Petrol',
       is_active: vehicle.is_active,
+      photo: null, // Reset photo on edit
     });
     setShowForm(true);
   };
@@ -123,9 +158,11 @@ export default function AdminVehicles() {
     setFormData({
       name: '',
       vehicle_type: '',
+      passengers: '',
       description: '',
       price_per_day: '',
       is_active: true,
+      photo: null,
     });
     setEditing(null);
     setShowForm(false);
@@ -207,8 +244,8 @@ export default function AdminVehicles() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">Manage Vehicles</h1>
-            <p className="mt-2 text-sm text-slate-600">Add, edit, or remove vehicles from the system</p>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-black">Manage Vehicles</h1>
+            <p className="mt-2 text-sm text-gray-700">Add, edit, or remove vehicles from the system</p>
           </div>
           <button 
             onClick={() => {
@@ -226,20 +263,20 @@ export default function AdminVehicles() {
         {stats && (
           <div className="mb-8 grid gap-4 md:grid-cols-4">
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-slate-600">Total Vehicles</h3>
-              <p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p>
+              <h3 className="text-sm font-medium text-black-300">Total Vehicles</h3>
+              <p className="mt-2 text-3xl font-bold text-gold-300">{stats.total}</p>
             </div>
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-slate-600">Active</h3>
-              <p className="mt-2 text-3xl font-bold text-emerald-600">{stats.active}</p>
+              <h3 className="text-sm font-medium text-black-300">Active</h3>
+              <p className="mt-2 text-3xl font-bold text-emerald-400">{stats.active}</p>
             </div>
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-slate-600">Inactive</h3>
-              <p className="mt-2 text-3xl font-bold text-slate-600">{stats.inactive}</p>
+              <h3 className="text-sm font-medium text-black-300">Inactive</h3>
+              <p className="mt-2 text-3xl font-bold text-gray-400">{stats.inactive}</p>
             </div>
             <div className="card p-6">
-              <h3 className="text-sm font-medium text-slate-600">Avg Price</h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">${stats.average_price?.toFixed(2)}</p>
+              <h3 className="text-sm font-medium text-black-300">Avg Price</h3>
+              <p className="mt-2 text-3xl font-bold text-blue-400">{formatPrice(stats.average_price)}</p>
             </div>
           </div>
         )}
@@ -247,7 +284,7 @@ export default function AdminVehicles() {
         {/* Add/Edit Form */}
         {showForm && (
           <div className="card mb-8 p-6">
-            <h2 className="mb-4 font-semibold text-slate-900">{editing ? 'Edit Vehicle' : 'Add New Vehicle'}</h2>
+            <h2 className="mb-4 font-semibold text-black">{editing ? 'Edit Vehicle' : 'Add New Vehicle'}</h2>
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="label">Vehicle Name *</label>
@@ -275,7 +312,22 @@ export default function AdminVehicles() {
                   <option value="MINI_BUS">Mini Bus</option>
                   <option value="TEMPO_TRAVELLER">Tempo Traveller</option>
                   <option value="SEDAN">Sedan</option>
-                  <option value="MINI_CAR">Mini Car</option>
+                  <option value="SUV">suv</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Fuel Type</label>
+                <select
+                  className="field mt-2"
+                  value={formData.fuel}
+                  onChange={(e) => setFormData({ ...formData, fuel: e.target.value })}
+                  disabled={loading}
+                >
+                  <option value="Petrol">Petrol</option>
+                  <option value="Diesel">Diesel</option>
+                  <option value="Electric">Electric</option>
+                  <option value="CNG">CNG</option>
+                  <option value="Hybrid">Hybrid</option>
                 </select>
               </div>
 
@@ -295,6 +347,20 @@ export default function AdminVehicles() {
               </div>
 
               <div>
+                <label className="label">Passengers</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  className="field mt-2"
+                  value={formData.passengers}
+                  onChange={(e) => setFormData({ ...formData, passengers: e.target.value })}
+                  placeholder="e.g., 5 or 30"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
                 <label className="label">Status</label>
                 <select
                   className="field mt-2"
@@ -305,6 +371,18 @@ export default function AdminVehicles() {
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="label">Vehicle Photo</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="field mt-2"
+                  onChange={(e) => setFormData({ ...formData, photo: e.target.files[0] })}
+                  disabled={loading}
+                />
+                <p className="mt-1 text-xs text-gray-500">Upload a photo of the vehicle (optional)</p>
               </div>
 
               <div className="md:col-span-2">
@@ -342,7 +420,7 @@ export default function AdminVehicles() {
 
         {/* Filters */}
         <div className="card mb-6 p-4">
-          <h3 className="mb-4 font-semibold text-slate-900">Filters</h3>
+          <h3 className="mb-4 font-semibold text-black">Filters</h3>
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="label">Vehicle Type</label>
@@ -355,7 +433,7 @@ export default function AdminVehicles() {
                 <option value="MINI_BUS">Mini Bus</option>
                 <option value="TEMPO_TRAVELLER">Tempo Traveller</option>
                 <option value="SEDAN">Sedan</option>
-                <option value="MINI_CAR">Mini Car</option>
+                <option value="SUV">suv</option>
               </select>
             </div>
             <div>
@@ -387,14 +465,14 @@ export default function AdminVehicles() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleBulkStatusUpdate(true)}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-lg bg-emerald-300 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
                 disabled={loading}
               >
                 Mark as Active
               </button>
               <button
                 onClick={() => handleBulkStatusUpdate(false)}
-                className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+                className="rounded-lg bg-slate-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-300 disabled:opacity-50"
                 disabled={loading}
               >
                 Mark as Inactive
@@ -420,24 +498,27 @@ export default function AdminVehicles() {
         <div className="card overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-slate-600">Loading vehicles...</p>
+              <p className="text-gray-300">Loading vehicles...</p>
             </div>
           ) : vehicles.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <p className="text-slate-600">No vehicles found. Add one to get started!</p>
+              <p className="text-gray-300">No vehicles found. Add one to get started!</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50">
+                <thead className="bg-white-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700 w-12">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-black w-12">
                       <input
                         type="checkbox"
                         checked={selectedVehicles.length === vehicles.length && vehicles.length > 0}
                         indeterminate={selectedVehicles.length > 0 && selectedVehicles.length < vehicles.length}
                         onChange={handleSelectAll}
                       />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      Photo
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Name
@@ -447,6 +528,12 @@ export default function AdminVehicles() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Price/Day
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      Seats
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      Fuel
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Status
@@ -469,25 +556,40 @@ export default function AdminVehicles() {
                           onChange={() => handleSelectVehicle(vehicle.id)}
                         />
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">{vehicle.name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                      <td className="px-6 py-4 text-sm">
+                        {vehicle.photo ? (
+                          <img 
+                            src={vehicle.photo} 
+                            alt={vehicle.name} 
+                            className="w-16 h-12 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <span className="text-xs text-gray-500">No photo</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-black">{vehicle.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <span className="inline-flex rounded-full bg-emerald-200 px-3 py-1 text-xs font-semibold text-black-200">
                           {vehicle.vehicle_type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">${vehicle.price_per_day}</td>
+                      <td className="px-6 py-4 text-sm text-black-300">{formatPrice(vehicle.price_per_day)}</td>
+                      <td className="px-6 py-4 text-sm text-black-300">{vehicle.passengers ?? '-'}</td>
+                      <td className="px-6 py-4 text-sm text-black-300">{vehicle.fuel || '-'}</td>
                       <td className="px-6 py-4 text-sm">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                             vehicle.is_active
                               ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 text-slate-700'
+                              : 'bg-slate-100 text-red-700'
                           }`}
                         >
                           {vehicle.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+                      <td className="px-6 py-4 text-sm text-black-300">
                         {new Date(vehicle.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right text-sm">

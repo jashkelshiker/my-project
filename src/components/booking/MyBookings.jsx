@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getBookings } from '../../data/mockData';
+import bookingAPI from '../../services/bookingAPI';
 import { formatPrice } from '../../utils/priceUtils';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Alert from '../ui/Alert';
-import { BOOKING_STATUS, ROUTES } from '../../constants/appConstants';
+import { ROUTES } from "../../constants/appConstants";
 
 /**
  * My Bookings Component
@@ -29,23 +29,38 @@ export default function MyBookings() {
     const loadBookings = async () => {
       setLoading(true);
       try {
-        const allBookings = await getBookings();
-        // Filter bookings for current user
-        const userBookings = allBookings.filter(
-          (b) => b.userId === user?.id || b.userName === user?.name
-        );
-        setBookings(userBookings);
+        const response = await bookingAPI.getMyBookings();
+        // Map backend booking format to frontend format
+        const mappedBookings = (response.results || response).map((booking) => ({
+          id: booking.id,
+          userId: booking.user || booking.user_details?.id,
+          userName: booking.user_details?.username || booking.user_details?.email || 'User',
+          vehicleId: booking.vehicle || booking.vehicle_details?.id,
+          vehicleName: booking.vehicle_details?.name || 'Vehicle',
+          pickupDate: booking.start_date,
+          returnDate: booking.end_date,
+          pickupLocation: booking.details?.deliverLocation || booking.pickup_location || 'N/A',
+          dropLocation: booking.details?.returnLocation || booking.drop_location || 'N/A',
+          totalPrice: parseFloat(booking.total_price || 0),
+          status: booking.status?.toLowerCase() || 'pending',
+          createdAt: booking.created_at,
+          days: booking.days_count || 1,
+        }));
+        setBookings(mappedBookings);
       } catch (error) {
         console.error('Failed to load bookings:', error);
+        setBookings([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user?.id || user?.name) {
+    if (user?.id) {
       loadBookings();
+    } else {
+      setLoading(false);
     }
-  }, [user?.id, user?.name]);
+  }, [user?.id]);
 
   /* ---------- FILTER & SEARCH BOOKINGS ---------- */
   useEffect(() => {
@@ -73,23 +88,42 @@ export default function MyBookings() {
 
   /* ---------- STATUS STYLING ---------- */
   const getStatusBadge = (status) => {
+    const normalizedStatus = status?.toLowerCase();
     const styles = {
       pending: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+      approved: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
       confirmed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
       completed: 'bg-blue-50 text-blue-700 border border-blue-200',
       cancelled: 'bg-red-50 text-red-700 border border-red-200',
+      rejected: 'bg-red-50 text-red-700 border border-red-200',
     };
-    return styles[status] || styles.pending;
+    return styles[normalizedStatus] || styles.pending;
   };
 
   const getStatusIcon = (status) => {
+    const normalizedStatus = status?.toLowerCase();
     const icons = {
       pending: '⏳',
+      approved: '✓',
       confirmed: '✓',
       completed: '✓✓',
       cancelled: '✕',
+      rejected: '✕',
     };
-    return icons[status] || '◎';
+    return icons[normalizedStatus] || '◎';
+  };
+
+  const formatStatus = (status) => {
+    const normalizedStatus = status?.toLowerCase();
+    const statusMap = {
+      pending: 'Pending',
+      approved: 'Approved',
+      confirmed: 'Confirmed',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+      rejected: 'Rejected',
+    };
+    return statusMap[normalizedStatus] || status;
   };
 
   /* ---------- CALCULATE DAYS ---------- */
@@ -106,13 +140,19 @@ export default function MyBookings() {
   };
 
   /* ---------- CONFIRM CANCEL ---------- */
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (cancelBookingId) {
-      setBookings((prev) =>
-        prev.map((b) => (b.id === cancelBookingId ? { ...b, status: 'cancelled' } : b))
-      );
-      setCancelSuccess(true);
-      setTimeout(() => setCancelSuccess(false), 3000);
+      try {
+        await bookingAPI.cancelBooking(cancelBookingId);
+        setBookings((prev) =>
+          prev.map((b) => (b.id === cancelBookingId ? { ...b, status: 'cancelled' } : b))
+        );
+        setCancelSuccess(true);
+        setTimeout(() => setCancelSuccess(false), 3000);
+      } catch (error) {
+        console.error('Failed to cancel booking:', error);
+        alert('Failed to cancel booking. Please try again.');
+      }
     }
     setShowConfirmation(false);
     setCancelBookingId(null);
@@ -132,15 +172,16 @@ export default function MyBookings() {
   /* ---------- STATS ---------- */
   const stats = {
     total: bookings.length,
-    pending: bookings.filter((b) => b.status === BOOKING_STATUS.PENDING).length,
-    confirmed: bookings.filter((b) => b.status === BOOKING_STATUS.CONFIRMED).length,
-    completed: bookings.filter((b) => b.status === BOOKING_STATUS.COMPLETED).length,
+    pending: bookings.filter((b) => b.status === 'pending' || b.status === 'PENDING').length,
+    confirmed: bookings.filter((b) => b.status === 'confirmed' || b.status === 'approved' || b.status === 'APPROVED').length,
+    completed: bookings.filter((b) => b.status === 'completed' || b.status === 'COMPLETED').length,
   };
 
   /* ---------- UI ---------- */
   if (!user) {
     return (
-      <div className="py-12">
+      // keep consistent background even when prompting to log in
+      <div className="py-12 bg-gradient-to-br from-brand-50 to-white min-h-screen">
         <div className="container-page">
           <Card className="px-8 py-12 text-center">
             <h2 className="text-2xl font-bold mb-4">Please log in</h2>
@@ -153,7 +194,8 @@ export default function MyBookings() {
   }
 
   return (
-    <div className="py-12 bg-slate-50">
+    // gradient goes under entire page with minimum full-screen height
+    <div className="py-12 bg-gradient-to-br from-brand-50 to-white min-h-screen">
       <div className="container-page">
         {/* ---------- SUCCESS MESSAGE ---------- */}
         {cancelSuccess && (
@@ -292,7 +334,7 @@ export default function MyBookings() {
                         </p>
                         <p className="mt-1 text-lg font-bold text-slate-900">#{booking.id}</p>
                         <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(booking.status)}`}>
-                          {getStatusIcon(booking.status)} {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          {getStatusIcon(booking.status)} {formatStatus(booking.status)}
                         </span>
                       </div>
 
@@ -344,7 +386,7 @@ export default function MyBookings() {
                         >
                           Details
                         </Button>
-                        {booking.status === 'pending' && (
+                        {(booking.status === 'pending' || booking.status === 'PENDING') && (
                           <Button
                             variant="danger"
                             size="small"

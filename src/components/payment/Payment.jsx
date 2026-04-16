@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { addBooking } from '../../data/mockData';
+import { useNotifications } from '../../context/NotificationContext';
+import bookingAPI from '../../services/bookingAPI';
+import paymentAPI from '../../services/paymentAPI';
+import vehicleAPI from '../../services/vehicleAPI';
+import { NOTIFICATION_TYPES } from '../../services/notificationAPI';
 import { PAYMENT_METHODS } from '../../constants/appConstants';
 import { formatPrice } from '../../utils/priceUtils';
 import Card from '../ui/Card';
@@ -16,9 +20,12 @@ export default function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { sendNotification } = useNotifications();
   const [method, setMethod] = useState(PAYMENT_METHODS.UPI);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+    const [buffering, setBuffering] = useState(false);
+    const [bufferTimer, setBufferTimer] = useState(120); // 2 minutes
 
   const bookingData = location.state;
 
@@ -41,34 +48,108 @@ export default function Payment() {
     );
   }
 
-  const handlePayment = async () => {
-    setIsProcessing(true);
-    setError('');
+    const handlePayment = async () => {
+      setIsProcessing(true);
+      setError('');
+      setBuffering(true);
+      setBufferTimer(120);
+    };
 
-    try {
-      // Save booking
-      await addBooking({
-        userId: user?.id || Date.now(),
-        userName: bookingData.name,
-        vehicleId: Date.now(),
-        vehicleName: bookingData.vehicle,
-        pickupDate: bookingData.deliverDate,
-        returnDate: bookingData.returnDate,
-        pickupLocation: bookingData.deliverLocation,
-        dropLocation: bookingData.returnLocation,
-        totalPrice: bookingData.totalPrice,
-        status: 'confirmed',
+    React.useEffect(() => {
+      if (buffering && bufferTimer > 0) {
+        const interval = setInterval(() => {
+          setBufferTimer((t) => t - 1);
+        }, 1000);
+        return () => clearInterval(interval);
+      } else if (buffering && bufferTimer === 0) {
+        // After buffer, proceed with payment
+        processPayment();
+      }
+    }, [buffering, bufferTimer]);
+
+    const processPayment = async () => {
+      try {
+        if (!user) {
+          setError('Please login to complete booking');
+          setIsProcessing(false);
+          setBuffering(false);
+          return;
+        }
+        // Find vehicle by name or type
+      let vehicleId = bookingData.vehicleId;
+      
+      if (!vehicleId) {
+        // Try to find vehicle by name. Since the public list is now admin-only the
+        // call may return a 403; catch that and provide a clearer message.
+        let vehicles;
+        try {
+          vehicles = await vehicleAPI.getAllVehicles({ search: bookingData.vehicle });
+        } catch (err) {
+          // `err` might be a string or object
+          const msg = err?.detail || err?.message || err;
+          if (msg && msg.toString().toLowerCase().includes('forbidden')) {
+            throw new Error('Vehicle lookup not permitted. Please contact the administrator.');
+          }
+          throw err;
+        }
+
+        const vehicle = vehicles.results?.find(
+          (v) => v.name.toLowerCase().includes(bookingData.vehicle.toLowerCase()) ||
+                 v.vehicle_type.toLowerCase() === bookingData.vehicle.toLowerCase()
+        ) || vehicles.results?.[0];
+        
+        if (!vehicle) {
+          throw new Error('Vehicle not found. Please select a valid vehicle.');
+        }
+        vehicleId = vehicle.id;
+      }
+
+      // Create booking
+      const booking = await bookingAPI.createBooking({
+        vehicle: vehicleId,
+        start_date: bookingData.deliverDate,
+        end_date: bookingData.returnDate,
       });
+
+      // Create payment
+      const payment = await paymentAPI.createPayment({
+        booking: booking.id,
+        amount: bookingData.totalPrice || booking.total_price,
+      });
+
+      // Send booking confirmation notification (use `phone` or `phone_number`)
+      const targetPhone = user?.phone || user?.phone_number;
+      if (targetPhone) {
+        try {
+          // choose channel based on environment variable (default to SMS)
+          const channel = process.env.REACT_APP_NOTIFICATION_CHANNEL || 'SMS';
+          await sendNotification({
+            notification_type: NOTIFICATION_TYPES.BOOKING_CONFIRMATION,
+            phone_number: targetPhone,
+            channel,
+            message: `Your booking #${booking.id} has been confirmed! Total: ₹${bookingData.totalPrice || booking.total_price}`,
+          });
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't block navigation if notification fails
+        }
+      }
 
       navigate('/booking-confirmation', {
         state: {
           ...bookingData,
-          total: bookingData.totalPrice,
+          bookingId: booking.id,
+          paymentId: payment.id,
+          transactionId: payment.transaction_id,
+          total: bookingData.totalPrice || booking.total_price,
           paymentMethod: method,
+          booking: booking,
+          payment: payment,
         },
       });
     } catch (err) {
-      setError('Payment failed. Please try again.');
+      const errorMessage = err.detail || err.error || err.message || 'Payment failed. Please try again.';
+      setError(errorMessage);
       setIsProcessing(false);
     }
   };
@@ -121,7 +202,7 @@ export default function Payment() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Tax (10%)</span>
+                <span className="text-slate-600">Tax (17%)</span>
                 <span className="font-medium text-slate-900">
                   {formatPrice(bookingData.tax || 0)}
                 </span>

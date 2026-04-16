@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useAuth } from '../../context/AuthContext';
 import { ROUTES, APP_CONFIG } from '../../constants/appConstants';
 import Button from '../ui/Button';
+import NotificationBell from '../notifications/NotificationBell';
 
 /**
  * NavItem Component
@@ -16,8 +17,8 @@ function NavItem({ to, label, onClick }) {
         [
           'rounded-xl px-3 py-2 text-sm font-medium transition',
           isActive
-            ? 'bg-slate-900 text-white'
-            : 'text-slate-700 hover:bg-slate-100',
+            ? 'bg-brand-600 text-white'
+            : 'text-black hover:bg-gray-100',
         ].join(' ')
       }
       end
@@ -58,8 +59,8 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-white/20 bg-white/70 backdrop-blur">
-        <div className="container-page flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-soft">
+        <div className="container-page flex h-18 items-center justify-between py-3">
           <Link
             to={
               isAdmin()
@@ -68,20 +69,33 @@ export default function Layout() {
                 ? ROUTES.DASHBOARD
                 : ROUTES.HOME
             }
-            className="flex items-center gap-2"
+            className="flex items-center gap-3"
           >
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-600 to-emerald-400 shadow-soft" />
+            <div className="h-10 w-10 rounded-2xl shadow-lift bg-gradient-to-br from-brand-600 to-emerald-400 flex items-center justify-center">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L15.5 8H8.5L12 2Z" fill="white" opacity="0.95" />
+                <circle cx="12" cy="14" r="6" fill="white" opacity="0.9" />
+              </svg>
+            </div>
             <div className="leading-tight">
-              <div className="font-display text-base font-bold tracking-tight text-slate-900">
+              <div className="font-display text-lg font-extrabold tracking-tight text-brand-600">
                 {APP_CONFIG.NAME}
               </div>
-              <div className="text-xs text-slate-500">
-                {isAdmin() ? 'Admin Panel' : APP_CONFIG.TAGLINE}
-              </div>
+              <div className="text-xs text-slate-600">{isAdmin() ? 'Admin Panel' : APP_CONFIG.TAGLINE}</div>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-2 md:flex">
+          {/* Search + Nav */}
+          <div className="hidden md:flex md:items-center md:gap-6">
+            <div className="relative">
+              <input
+                placeholder="Search vehicles, locations..."
+                className="field w-80 pl-10 pr-4"
+              />
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">🔍</div>
+            </div>
+
+            <nav className="hidden items-center gap-2 md:flex">
             {!isAuthenticated &&
               navItems.map((it) => (
                 <NavItem key={it.to} to={it.to} label={it.label} />
@@ -105,8 +119,12 @@ export default function Layout() {
                     <NavItem to={ROUTES.FAVORITES} label="Favorites ❤️" />
                   </>
                 )}
-                <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-                  <span className="text-sm text-slate-600">{user?.name}</span>
+                <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
+                  {isAuthenticated && <NotificationBell />}
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold text-black">{(user?.name || 'U').charAt(0)}</div>
+                    <div className="text-sm text-black">{user?.name}</div>
+                  </div>
                   <Button variant="ghost" onClick={handleLogout} className="text-sm">
                     Logout
                   </Button>
@@ -125,6 +143,7 @@ export default function Layout() {
               </>
             )}
           </nav>
+          </div>
 
           <button
             type="button"
@@ -138,7 +157,7 @@ export default function Layout() {
         </div>
 
         {open && (
-          <div className="border-t border-slate-200/60 bg-white md:hidden">
+          <div className="border-t border-gray-200 bg-white md:hidden">
             <div className="container-page flex flex-col gap-2 py-3">
               {!isAuthenticated &&
                 navItems.map((it) => (
@@ -205,7 +224,7 @@ export default function Layout() {
                     </>
                   )}
                   <div className="pt-2 border-t border-slate-200">
-                    <div className="text-sm text-slate-600 mb-2">{user?.name}</div>
+                    <div className="text-sm text-text-secondary mb-2">{user?.name}</div>
                     <Button
                       variant="secondary"
                       fullWidth
@@ -240,47 +259,42 @@ export default function Layout() {
         )}
       </header>
 
-      <main>
+      <main className="py-8">
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-200/70 bg-white">
-        <div className="container-page py-10">
+      <footer className="mt-12 bg-white/30">
+        <div className="container-page py-12">
           <div className="grid gap-8 md:grid-cols-3">
             <div>
-              <div className="font-display text-lg font-bold">{APP_CONFIG.NAME}</div>
-              <p className="mt-2 text-sm text-slate-600">
-                Verified vehicles, transparent pricing, and a smooth booking
-                experience.
-              </p>
-            </div>
-            <div className="text-sm">
-              <div className="font-semibold text-slate-900">Quick links</div>
-              <div className="mt-3 flex flex-col gap-2 text-slate-600">
-                <Link className="hover:text-slate-900" to={ROUTES.HOME}>
-                  Home
-                </Link>
-                <Link className="hover:text-slate-900" to={ROUTES.BOOKING}>
-                  Book
-                </Link>
-                <Link className="hover:text-slate-900" to={ROUTES.AUTH}>
-                  Sign in
-                </Link>
+              <div className="font-display text-lg font-bold text-text-primary">{APP_CONFIG.NAME}</div>
+              <p className="mt-2 text-sm text-text-secondary">Premium vehicles, clear pricing, delightful service.</p>
+              <div className="mt-4 flex gap-3">
+                <Link className="btn-primary" to={ROUTES.BOOKING}>Get Started</Link>
+                <a className="btn-secondary" href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`}>Contact Sales</a>
               </div>
             </div>
-            <div className="text-sm">
+            <div className="text-sm text-slate-700">
+              <div className="font-semibold text-slate-900">Explore</div>
+              <div className="mt-3 flex flex-col gap-2">
+                <Link className="hover:text-slate-900" to={ROUTES.HOME}>Home</Link>
+                <Link className="hover:text-slate-900" to={ROUTES.BOOKING}>Book</Link>
+                <Link className="hover:text-slate-900" to={ROUTES.VEHICLES}>Vehicles</Link>
+              </div>
+            </div>
+            <div className="text-sm text-slate-700">
               <div className="font-semibold text-slate-900">Contact</div>
-              <div className="mt-3 text-slate-600">
+              <div className="mt-3">
                 <div>{APP_CONFIG.SUPPORT_EMAIL}</div>
                 <div className="mt-1">{APP_CONFIG.SUPPORT_HOURS}</div>
               </div>
             </div>
           </div>
-          <div className="mt-10 flex flex-col gap-2 border-t border-slate-200/70 pt-6 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div className="mt-10 flex flex-col gap-2 border-t border-white/20 pt-6 text-xs text-slate-600 md:flex-row md:items-center md:justify-between">
             <div>© {new Date().getFullYear()} {APP_CONFIG.NAME}. All rights reserved.</div>
-            <div className="flex gap-4">
-              <span>Privacy</span>
-              <span>Terms</span>
+              <div className="flex gap-4">
+              <Link className="hover:text-slate-900" to="/privacy">Privacy</Link>
+              <Link className="hover:text-slate-900" to="/terms">Terms</Link>
             </div>
           </div>
         </div>

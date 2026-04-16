@@ -54,11 +54,12 @@ export default function Favorites() {
 
   if (loading) {
     return (
-      <div className="py-12 bg-slate-50">
+      // show same gradient even while spinner is visible
+      <div className="py-12 bg-gradient-to-br from-brand-50 to-white min-h-screen">
         <div className="container-page">
           <Card className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-            <p className="mt-4 text-slate-600">Loading favorites...</p>
+            <p className="mt-4 text-gray-600">Loading favorites...</p>
           </Card>
         </div>
       </div>
@@ -66,15 +67,16 @@ export default function Favorites() {
   }
 
   return (
-    <div className="py-12 bg-slate-50">
+    // apply green‑to‑white gradient background
+    <div className="py-12 bg-gradient-to-br from-brand-50 to-white min-h-screen">
       <div className="container-page">
         {/* ---------- HEADER ---------- */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-brand-900">
               ❤️ My Favorite Vehicles
             </h1>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-gray-600">
               {favorites.length === 0
                 ? 'You haven\'t added any favorites yet'
                 : `${favorites.length} vehicle${favorites.length !== 1 ? 's' : ''} saved`}
@@ -95,8 +97,8 @@ export default function Favorites() {
           /* ---------- EMPTY STATE ---------- */
           <Card className="py-16 text-center">
             <div className="text-6xl mb-4">🤍</div>
-            <h3 className="text-2xl font-bold text-slate-900">No favorites yet</h3>
-            <p className="mt-4 text-slate-600 mb-8 max-w-md mx-auto">
+            <h3 className="text-2xl font-bold text-gray-900">No favorites yet</h3>
+            <p className="mt-4 text-gray-600 mb-8 max-w-md mx-auto">
               Start exploring our vehicle collection and add your favorites for quick booking later!
             </p>
               <div className="flex gap-3 justify-center">
@@ -113,18 +115,18 @@ export default function Favorites() {
             {/* ---------- STATS ---------- */}
             <div className="mb-8 grid gap-4 md:grid-cols-3">
               <Card className="px-6 py-4 border-l-4 border-l-red-400">
-                <div className="text-sm font-medium text-slate-600">Total Favorites</div>
-                <div className="mt-2 text-3xl font-bold text-slate-900">{favorites.length}</div>
+                <div className="text-sm font-medium text-gray-600">Total Favorites</div>
+                <div className="mt-2 text-3xl font-bold text-gray-900">{favorites.length}</div>
               </Card>
               <Card className="px-6 py-4 border-l-4 border-l-brand-400">
-                <div className="text-sm font-medium text-slate-600">Average Price</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">
+                <div className="text-sm font-medium text-gray-600">Average Price</div>
+                <div className="mt-2 text-2xl font-bold text-gray-900">
                   {formatPrice(avgPrice)}/day
                 </div>
               </Card>
               <Card className="px-6 py-4 border-l-4 border-l-emerald-400">
-                <div className="text-sm font-medium text-slate-600">Total Value (Daily)</div>
-                <div className="mt-2 text-2xl font-bold text-slate-900">
+                <div className="text-sm font-medium text-gray-600">Total Value (Daily)</div>
+                <div className="mt-2 text-2xl font-bold text-gray-900">
                   {formatPrice(totalValue)}/day
                 </div>
               </Card>
@@ -138,8 +140,19 @@ export default function Favorites() {
                   className="overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
                 >
                   {/* Vehicle Image Area */}
-                  <div className="relative bg-gradient-to-br from-red-50 to-rose-50 p-8 text-center">
-                    <div className="text-6xl mb-4">{vehicle.image || '🚗'}</div>
+                  <div className="relative bg-gradient-to-br from-red-50 to-rose-50 h-48 text-center flex items-center justify-center overflow-hidden">
+                    {vehicle.photo ? (
+                      <img 
+                        src={vehicle.photo} 
+                        alt={vehicle.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="text-6xl">🚗</div>
+                    )}
 
                     {/* Remove Button */}
                     <button
@@ -151,22 +164,22 @@ export default function Favorites() {
                     </button>
 
                     {/* Type Badge */}
-                    <div className="inline-block rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                      {vehicle.type}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 inline-block rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                      {vehicle.vehicle_type || vehicle.type}
                     </div>
                   </div>
 
                   {/* Vehicle Details */}
                   <div className="flex flex-col flex-1 p-6">
-                    <h3 className="font-display text-lg font-bold text-slate-900">
+                    <h3 className="font-display text-lg font-bold text-gray-900">
                       {vehicle.name}
                     </h3>
-                    <p className="mt-2 text-sm text-slate-600 flex-1">
+                    <p className="mt-2 text-sm text-gray-600 flex-1">
                       {vehicle.description}
                     </p>
 
                     {/* Specs */}
-                    <div className="mt-4 flex gap-4 text-sm text-slate-600">
+                    <div className="mt-4 flex gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <span>👥</span>
                         <span>{vehicle.passengers} seats</span>
@@ -178,15 +191,15 @@ export default function Favorites() {
                     </div>
 
                     {/* Price & CTA */}
-                    <div className="mt-6 flex items-center justify-between pt-6 border-t border-slate-200">
+                    <div className="mt-6 flex items-center justify-between pt-6 border-t border-gray-200">
                       <div>
-                        <p className="text-xs text-slate-600">From</p>
-                        <p className="text-2xl font-bold text-slate-900">
+                        <p className="text-xs text-gray-600">From</p>
+                        <p className="text-2xl font-bold text-gray-900">
                           {formatPrice(vehicle.price)}/day
                         </p>
                       </div>
                       <Button
-                        onClick={() => navigate(ROUTES.BOOKING)}
+                        onClick={() => navigate(ROUTES.BOOKING, { state: { selectedVehicle: vehicle } })}
                         className="flex-shrink-0"
                       >
                         Book
@@ -220,10 +233,10 @@ export default function Favorites() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-sm mx-4">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-slate-900 mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Clear All Favorites?
                 </h2>
-                <p className="text-slate-600 mb-6">
+                <p className="text-gray-600 mb-6">
                   Are you sure you want to clear all favorites? This action cannot be undone.
                 </p>
                 <div className="flex gap-3 justify-end">

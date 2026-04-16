@@ -14,10 +14,12 @@ export default function BudgetVehicles() {
   const [favorites, setFavorites] = useState([]);
 
   const budgetVehicles = [
-    { id: 5, name: 'Maruti Swift', price: 1600, description: 'Compact city car for solo travelers', image: '🚗', passengers: 4, fuel: 'Petrol', savings: '20%' },
-    { id: 2, name: 'Honda Civic', price: 1800, description: 'Fuel-efficient and reliable', image: '🚗', passengers: 5, fuel: 'Petrol', savings: '10%' },
-    { id: 1, name: 'Toyota Camry', price: 2000, description: 'Comfortable sedan for daily commute', image: '🚗', passengers: 5, fuel: 'Petrol', savings: '15%' },
-    { id: 7, name: 'Hyundai Creta', price: 2500, description: 'Modern compact SUV with tech features', image: '🚙', passengers: 5, fuel: 'Petrol', savings: '12%' },
+    { id: 1, name: 'Toyota Camry', price: 2000, description: 'Mid-size sedan — comfortable 5-seater for daily use', image: '🚗', passengers: 5, fuel: 'Petrol' },
+    { id: 3, name: 'Mahindra XUV500', price: 3000, description: 'Compact crossover SUV — typically offered as a 7-seater', image: '🚙', passengers: 7, fuel: 'Diesel' },
+    { id: 6, name: 'Tempo Traveller', price: 3000, description: 'Minibus (Force Motors) — available up to 20 seats; configured here as 20-seater', image: '🚌', passengers: 20, fuel: 'Diesel' },
+    { id: 4, name: 'Toyota Fortuner', price: 3500, description: 'Mid-size body-on-frame SUV — commonly a 7-seater family SUV', image: '🚙', passengers: 7, fuel: 'Diesel' },
+    { id: 7, name: 'Hyundai Creta', price: 2500, description: 'Subcompact crossover SUV — typically a 5-seater (long-wheelbase Alcazar is 6/7)', image: '🚙', passengers: 5, fuel: 'Petrol' },
+    { id: 2, name: 'Honda Civic', price: 1800, description: 'Compact car — comfortable 5-seater, fuel-efficient and reliable', image: '🚗', passengers: 5, fuel: 'Petrol' },
   ];
 
   const toggleFavorite = (vehicleId) => {
@@ -27,11 +29,11 @@ export default function BudgetVehicles() {
   };
 
   return (
-    <div className="py-12 bg-slate-50 min-h-screen">
+    <div className="py-12 bg-slate-900/60 min-h-screen">
       <div className="container-page">
         {/* Header */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-700 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 mb-4">
             💰 Budget Friendly Deals
           </div>
           <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900">
@@ -63,11 +65,11 @@ export default function BudgetVehicles() {
           {budgetVehicles.map((vehicle) => (
             <Card key={vehicle.id} className="overflow-hidden hover:shadow-lg transition flex flex-col relative">
               {/* Savings Badge */}
-              <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
-                Save {vehicle.savings}
+              <div className="absolute top-4 left-4 bg-brand-600 text-white px-3 py-1 rounded-full text-xs font-bold z-10">
+                Best price
               </div>
 
-              <div className="relative bg-gradient-to-br from-yellow-50 to-amber-50 p-8 text-center pt-12">
+              <div className="relative bg-gradient-to-br from-emerald-50 to-brand-50 p-8 text-center pt-12">
                 <div className="text-6xl mb-4">{vehicle.image}</div>
                 <button
                   onClick={() => toggleFavorite(vehicle.id)}
@@ -91,7 +93,7 @@ export default function BudgetVehicles() {
                     <p className="text-xs text-slate-600">From</p>
                     <p className="text-2xl font-bold text-slate-900">{formatPrice(vehicle.price)}/day</p>
                   </div>
-                  <Button onClick={() => navigate(ROUTES.BOOKING)}>Book</Button>
+                  <Button onClick={() => navigate(ROUTES.BOOKING, { state: { selectedVehicle: vehicle } })}>Book</Button>
                 </div>
               </div>
             </Card>

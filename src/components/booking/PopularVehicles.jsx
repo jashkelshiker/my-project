@@ -14,12 +14,12 @@ export default function PopularVehicles() {
   const [favorites, setFavorites] = useState([]);
 
   const popularVehicles = [
-    { id: 1, name: 'Toyota Camry', price: 2000, description: 'Comfortable sedan for daily commute', image: '🚗', passengers: 5, fuel: 'Petrol', bookings: 1250, rating: 4.8 },
-    { id: 3, name: 'Mahindra XUV500', price: 3000, description: 'Spacious SUV with comfort features', image: '🚙', passengers: 7, fuel: 'Diesel', bookings: 950, rating: 4.6 },
-    { id: 6, name: 'Tempo Traveller', price: 3000, description: 'Comfortable 12-seater minibus', image: '🚌', passengers: 12, fuel: 'Diesel', bookings: 850, rating: 4.7 },
-    { id: 4, name: 'Toyota Fortuner', price: 3500, description: 'Premium SUV for family trips', image: '🚙', passengers: 7, fuel: 'Diesel', bookings: 720, rating: 4.9 },
-    { id: 7, name: 'Hyundai Creta', price: 2500, description: 'Modern compact SUV with tech features', image: '🚙', passengers: 5, fuel: 'Petrol', bookings: 680, rating: 4.5 },
-    { id: 2, name: 'Honda Civic', price: 1800, description: 'Fuel-efficient and reliable', image: '🚗', passengers: 5, fuel: 'Petrol', bookings: 620, rating: 4.4 },
+    { id: 1, name: 'Toyota Camry', price: 2000, description: 'Mid-size sedan — comfortable 5-seater for daily use', image: '🚗', passengers: 5, fuel: 'Petrol', bookings: 1250, rating: 4.8 },
+    { id: 3, name: 'Mahindra XUV500', price: 3000, description: 'Compact crossover SUV — typically offered as a 7-seater', image: '🚙', passengers: 7, fuel: 'Diesel', bookings: 950, rating: 4.6 },
+    { id: 6, name: 'Tempo Traveller', price: 3000, description: 'Minibus (Force Motors) — available up to 20 seats; configured here as 20-seater', image: '🚌', passengers: 20, fuel: 'Diesel', bookings: 850, rating: 4.7 },
+    { id: 4, name: 'Toyota Fortuner', price: 3500, description: 'Mid-size body-on-frame SUV — commonly a 7-seater family SUV', image: '🚙', passengers: 7, fuel: 'Diesel', bookings: 720, rating: 4.9 },
+    { id: 7, name: 'Hyundai Creta', price: 2500, description: 'Subcompact crossover SUV — typically a 5-seater (long-wheelbase Alcazar is 6/7)', image: '🚙', passengers: 5, fuel: 'Petrol', bookings: 680, rating: 4.5 },
+    { id: 2, name: 'Honda Civic', price: 1800, description: 'Compact car — comfortable 5-seater, fuel-efficient and reliable', image: '🚗', passengers: 5, fuel: 'Petrol', bookings: 620, rating: 4.4 },
   ];
 
   const toggleFavorite = (vehicleId) => {
@@ -29,11 +29,11 @@ export default function PopularVehicles() {
   };
 
   return (
-    <div className="py-12 bg-slate-50 min-h-screen">
+    <div className="py-12 bg-slate-900/60 min-h-screen">
       <div className="container-page">
         {/* Header */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-sm font-semibold text-red-700 mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700 mb-4">
             🔥 Trending Now
           </div>
           <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900">
@@ -52,7 +52,7 @@ export default function PopularVehicles() {
           </Card>
           <Card className="p-6">
             <div className="text-sm font-medium text-slate-600">Avg Rating</div>
-            <p className="mt-2 text-2xl font-bold text-yellow-500">⭐ 4.65/5</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-500">⭐ 4.65/5</p>
           </Card>
           <Card className="p-6">
             <div className="text-sm font-medium text-slate-600">Popular Options</div>
@@ -64,7 +64,7 @@ export default function PopularVehicles() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {popularVehicles.map((vehicle) => (
             <Card key={vehicle.id} className="overflow-hidden hover:shadow-lg transition flex flex-col">
-              <div className="relative bg-gradient-to-br from-red-50 to-rose-50 p-8 text-center">
+              <div className="relative bg-gradient-to-br from-emerald-50 to-brand-50 p-8 text-center">
                 <div className="text-6xl mb-4">{vehicle.image}</div>
                 <button
                   onClick={() => toggleFavorite(vehicle.id)}
@@ -74,7 +74,7 @@ export default function PopularVehicles() {
                 </button>
 
                 {/* Rating Badge */}
-                <div className="mt-4 inline-flex items-center gap-1 bg-yellow-100 px-3 py-1 rounded-full text-sm">
+                <div className="mt-4 inline-flex items-center gap-1 bg-brand-100 px-3 py-1 rounded-full text-sm text-brand-800">
                   <span>⭐</span>
                   <span className="font-bold">{vehicle.rating}</span>
                   <span className="text-xs text-slate-600">({vehicle.bookings} bookings)</span>
@@ -95,7 +95,7 @@ export default function PopularVehicles() {
                     <p className="text-xs text-slate-600">From</p>
                     <p className="text-2xl font-bold text-slate-900">{formatPrice(vehicle.price)}/day</p>
                   </div>
-                  <Button onClick={() => navigate(ROUTES.BOOKING)}>Book</Button>
+                  <Button onClick={() => navigate(ROUTES.BOOKING, { state: { selectedVehicle: vehicle } })}>Book</Button>
                 </div>
               </div>
             </Card>
